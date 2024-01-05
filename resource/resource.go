@@ -3,21 +3,25 @@ package resource
 import "github.com/vsayfb/e-commerce-scrapper/document"
 
 type Resource struct {
-	Site string
-	URL  string
-	docs []document.Document
+	Site    string
+	URL     string
+	Keyword string
+	Page    uint8
+	Docs    []document.Document
 }
 
-func New(url, site string) *Resource {
+func New(url, site, keyword string, page uint8) *Resource {
 
 	r := &Resource{
-		URL:  url,
-		Site: site,
+		URL:     url,
+		Site:    site,
+		Keyword: keyword,
+		Page:    page,
 	}
 
 	return r
 }
 
 func (r *Resource) AppendDoc(doc document.Document) {
-	r.docs = append(r.docs, doc)
+	r.Docs = append(r.Docs, doc)
 }
