@@ -2,22 +2,25 @@ package main
 
 import (
 	"fmt"
-	"github.com/vsayfb/e-commerce-scrapper/document"
-	"github.com/vsayfb/e-commerce-scrapper/fetcher"
-	"github.com/vsayfb/e-commerce-scrapper/resource"
+	"github.com/vsayfb/e-commerce-scrapper/client"
+	"os"
 )
 
 func main() {
 
-	r := resource.New("", "", "", 222)
+	args := os.Args
 
-	doc := document.New("", "", "", "", "")
+	if len(args) < 2 || (args[1] != "cmd" && args[1] != "http") {
+		fmt.Println("You have to choose an option, cmd or http.")
 
-	r.AppendDoc(*doc)
+		os.Exit(1)
+	}
 
-	f := fetcher.New(*r)
+	if len(args) < 3 && (args[1] != "sync" && args[1] != "async") {
+		fmt.Println("You have to choose an option, sync or async.")
 
-	f.FetchSync()
+		os.Exit(1)
+	}
 
-	fmt.Println(r)
+	client.New(args[1])
 }
