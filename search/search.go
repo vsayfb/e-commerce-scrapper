@@ -12,7 +12,7 @@ import (
 
 type Searcher interface {
 	SearchSync() []product.Product
-	SearchAsync(ch chan<- product.Product, group *sync.WaitGroup)
+	SearchAsync(ch chan<- product.Product)
 }
 
 func New(keyword string, page uint8) *Search {
@@ -66,9 +66,42 @@ func (s Search) SearchSync() []product.Product {
 
 }
 
-func (s Search) SearchAsync(ch chan<- product.Product, group *sync.WaitGroup) {
-	//TODO implement me
-	panic("implement me")
+func (s Search) SearchAsync(ch chan<- product.Product) {
+
+	fetchers := make([]*fetcher.Fetch, 0)
+
+	url := fmt.Sprintf("", s.keyword, s.page)
+
+	r := resource.New(url, "", s.keyword, s.page)
+
+	d := document.New(
+		"",
+		"",
+		"",
+		"",
+		"",
+	)
+
+	r.AppendDoc(*d)
+
+	fetch := fetcher.New(*r)
+
+	fetchers = append(fetchers, fetch)
+
+	var wg sync.WaitGroup
+
+	go func() {
+		for _, f := range fetchers {
+			wg.Add(1)
+
+			go f.FetchAsync(ch, &wg)
+		}
+
+		wg.Wait()
+
+		close(ch)
+	}()
+
 }
 
 func mergeSort(p1, p2 []product.Product) []product.Product {

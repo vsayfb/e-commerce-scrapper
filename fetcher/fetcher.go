@@ -27,7 +27,12 @@ func New(r resource.Resource) *Fetch {
 
 func (f Fetch) FetchAsync(ch chan<- product.Product, wg *sync.WaitGroup) {
 
-	defer wg.Done()
+	defer func() {
+		fmt.Println(f.resource.Site + "done.")
+
+		wg.Done()
+
+	}()
 
 	resp, err := http.Get(f.resource.URL)
 
