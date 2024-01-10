@@ -10,8 +10,8 @@ func main() {
 
 	args := os.Args
 
-	if len(args) < 2 || (args[1] != "cmd" && args[1] != "http") {
-		fmt.Println("You have to choose an option, cmd or http.")
+	if len(args) < 2 || (args[1] != "cli" && args[1] != "http") {
+		fmt.Println("You have to choose an option, cli or http.")
 
 		os.Exit(1)
 	}
