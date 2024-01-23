@@ -1,15 +1,14 @@
 package document
 
 type Document struct {
-	MainTag  string
-	TitleTag string
-	PriceTag string
-	ImageTag string
-	URLTag   string
+	MainTag  string `yaml:"MainTag"`
+	TitleTag string `yaml:"TitleTag"`
+	PriceTag string `yaml:"PriceTag"`
+	ImageTag string `yaml:"ImageTag"`
+	URLTag   string `yaml:"URLTag"`
 }
 
 func New(main, title, price, image, url string) *Document {
-
 	doc := Document{
 		MainTag:  main,
 		TitleTag: title,
@@ -19,5 +18,4 @@ func New(main, title, price, image, url string) *Document {
 	}
 
 	return &doc
-
 }

@@ -2,12 +2,13 @@ package search
 
 import (
 	"fmt"
-	"github.com/vsayfb/e-commerce-scrapper/document"
+	"sort"
+	"sync"
+
 	"github.com/vsayfb/e-commerce-scrapper/fetcher"
 	"github.com/vsayfb/e-commerce-scrapper/product"
 	"github.com/vsayfb/e-commerce-scrapper/resource"
-	"sort"
-	"sync"
+	"github.com/vsayfb/e-commerce-scrapper/source"
 )
 
 type Searcher interface {
@@ -31,23 +32,20 @@ type Search struct {
 func (s Search) SearchSync() []product.Product {
 	fetchers := make([]*fetcher.Fetch, 0)
 
-	url := fmt.Sprintf("", s.keyword, s.page)
+	sources := source.GetSource()
 
-	r := resource.New(url, "Ebay", s.keyword, s.page)
+	for _, source := range sources {
 
-	d := document.New(
-		"",
-		"",
-		"",
-		"",
-		"",
-	)
+		url := fmt.Sprintf(source.Website.SourceURL, s.keyword, s.page)
 
-	r.AppendDoc(*d)
+		r := resource.New(url, source.Website.Name, s.keyword, s.page)
 
-	f := fetcher.New(*r)
+		for _, d := range source.Website.Docs {
+			r.AppendDoc(d)
+		}
 
-	fetchers = append(fetchers, f)
+		fetchers = append(fetchers, fetcher.New(*r))
+	}
 
 	products := make([]product.Product, 0)
 
@@ -63,30 +61,25 @@ func (s Search) SearchSync() []product.Product {
 	}
 
 	return products
-
 }
 
 func (s Search) SearchAsync(ch chan<- product.Product) {
-
 	fetchers := make([]*fetcher.Fetch, 0)
 
-	url := fmt.Sprintf("", s.keyword, s.page)
+	sources := source.GetSource()
 
-	r := resource.New(url, "", s.keyword, s.page)
+	for _, source := range sources {
 
-	d := document.New(
-		"",
-		"",
-		"",
-		"",
-		"",
-	)
+		url := fmt.Sprintf(source.Website.SourceURL, s.keyword, s.page)
 
-	r.AppendDoc(*d)
+		r := resource.New(url, source.Website.Name, s.keyword, s.page)
 
-	fetch := fetcher.New(*r)
+		for _, d := range source.Website.Docs {
+			r.AppendDoc(d)
+		}
 
-	fetchers = append(fetchers, fetch)
+		fetchers = append(fetchers, fetcher.New(*r))
+	}
 
 	var wg sync.WaitGroup
 
@@ -101,7 +94,6 @@ func (s Search) SearchAsync(ch chan<- product.Product) {
 
 		close(ch)
 	}()
-
 }
 
 func mergeSort(p1, p2 []product.Product) []product.Product {

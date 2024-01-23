@@ -2,12 +2,13 @@ package fetcher
 
 import (
 	"fmt"
+	"net/http"
+	"sync"
+
 	"github.com/PuerkitoBio/goquery"
 	"github.com/vsayfb/e-commerce-scrapper/extractor"
 	"github.com/vsayfb/e-commerce-scrapper/product"
 	"github.com/vsayfb/e-commerce-scrapper/resource"
-	"net/http"
-	"sync"
 )
 
 type Fetcher interface {
@@ -26,16 +27,13 @@ func New(r resource.Resource) *Fetch {
 }
 
 func (f Fetch) FetchAsync(ch chan<- product.Product, wg *sync.WaitGroup) {
-
 	defer func() {
 		fmt.Println(f.resource.Site + "done.")
 
 		wg.Done()
-
 	}()
 
 	resp, err := http.Get(f.resource.URL)
-
 	if err != nil {
 		fmt.Println("Product fetching error", err)
 	}
@@ -55,18 +53,14 @@ func (f Fetch) FetchAsync(ch chan<- product.Product, wg *sync.WaitGroup) {
 			if err == nil {
 				ch <- p
 			}
-
 		})
 	}
-
 }
 
 func (f Fetch) FetchSync() []product.Product {
-
 	products := make([]product.Product, 20)
 
 	resp, err := http.Get(f.resource.URL)
-
 	if err != nil {
 		fmt.Println("Product fetching error", err)
 	}
@@ -86,7 +80,6 @@ func (f Fetch) FetchSync() []product.Product {
 			if err == nil {
 				products = append(products, p)
 			}
-
 		})
 	}
 
