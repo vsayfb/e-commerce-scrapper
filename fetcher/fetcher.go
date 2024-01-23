@@ -41,7 +41,7 @@ func (f Fetch) FetchAsync(ch chan<- product.Product, wg *sync.WaitGroup) {
 	for _, doc := range f.resource.Docs {
 		e := extractor.New(doc, resp.Body)
 
-		e.MainSelection.Each(func(i int, s *goquery.Selection) {
+		e.MainSelection.Each(func(_ int, s *goquery.Selection) {
 			p := product.Product{Site: f.resource.Site}
 
 			p.Title = e.Title(s)
@@ -58,7 +58,7 @@ func (f Fetch) FetchAsync(ch chan<- product.Product, wg *sync.WaitGroup) {
 }
 
 func (f Fetch) FetchSync() []product.Product {
-	products := make([]product.Product, 20)
+	products := make([]product.Product, 0)
 
 	resp, err := http.Get(f.resource.URL)
 	if err != nil {
@@ -68,7 +68,7 @@ func (f Fetch) FetchSync() []product.Product {
 	for _, doc := range f.resource.Docs {
 		e := extractor.New(doc, resp.Body)
 
-		e.MainSelection.Each(func(i int, s *goquery.Selection) {
+		e.MainSelection.Each(func(_ int, s *goquery.Selection) {
 			p := product.Product{Site: f.resource.Site}
 
 			p.Title = e.Title(s)

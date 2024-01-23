@@ -42,5 +42,5 @@ func GetSource() []Source {
 		log.Fatal("Empty source file.")
 	}
 
-	return make([]Source, 0)
+	return sources
 }
