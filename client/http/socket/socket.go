@@ -2,11 +2,12 @@ package socket
 
 import (
 	"fmt"
-	"github.com/gorilla/websocket"
-	"github.com/vsayfb/e-commerce-scrapper/client/channel"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/gorilla/websocket"
+	"github.com/vsayfb/e-commerce-scrapper/client/channel"
 )
 
 var upgrader = websocket.Upgrader{
@@ -16,7 +17,6 @@ var upgrader = websocket.Upgrader{
 
 func ConcurrentSearchHandler(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
-
 	if err != nil {
 		fmt.Println(err)
 		return

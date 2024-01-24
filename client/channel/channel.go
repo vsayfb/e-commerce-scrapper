@@ -1,55 +1,75 @@
 package channel
 
 import (
+	"encoding/json"
 	"fmt"
+
 	"github.com/emirpasic/gods/maps/treemap"
 	"github.com/emirpasic/gods/utils"
 	"github.com/gorilla/websocket"
+	"github.com/vsayfb/e-commerce-scrapper/cache"
+	"github.com/vsayfb/e-commerce-scrapper/cache/redis"
 	"github.com/vsayfb/e-commerce-scrapper/product"
 	"github.com/vsayfb/e-commerce-scrapper/search"
 )
 
-func ReceiveProducts(msg string, page uint8, conn *websocket.Conn) {
+func ReceiveProducts(keyword string, page uint8, conn *websocket.Conn) {
+	c := cache.New(redis.New())
 
-	s := search.New(msg, page)
+	key := fmt.Sprintf("%v-%v", keyword, page)
 
-	ch := make(chan product.Product)
+	result, err := c.GetProducts(key)
 
-	quit := make(chan bool)
+	if err == nil {
+		conn.WriteJSON(result)
+	} else {
+		s := search.New(keyword, page)
 
-	tree := treemap.NewWith(utils.Float64Comparator)
+		ch := make(chan product.Product)
 
-	s.SearchAsync(ch)
+		quit := make(chan bool)
 
-	go func() {
-		for {
-			select {
-			case p, open := <-ch:
+		tree := treemap.NewWith(utils.Float64Comparator)
 
-				if open {
-					tree.Put(p.NumPrice, p)
+		s.SearchAsync(ch)
 
-					if tree.Size()%10 == 0 {
+		go func() {
+			for {
+				select {
+				case p, open := <-ch:
 
-						val := tree.Values()
+					if open {
+						tree.Put(p.NumPrice, p)
 
-						if writeErr := conn.WriteJSON(val); writeErr != nil {
-							fmt.Println("Write error", writeErr)
+						if tree.Size()%10 == 0 {
 
-							return
+							val := tree.Values()
+
+							if writeErr := conn.WriteJSON(val); writeErr != nil {
+								fmt.Println("Write error", writeErr)
+
+								return
+							}
+
 						}
-
+					} else {
+						quit <- true
 					}
-				} else {
-					quit <- true
 				}
-
 			}
+		}()
 
-		}
+		<-quit
 
-	}()
+		go func() {
+			bytes, err := json.Marshal(tree.Values())
 
-	<-quit
+			if err != nil {
+				fmt.Print("Marshal error", err)
+			} else {
+				c.Add(key, bytes)
+			}
+		}()
 
+	}
 }

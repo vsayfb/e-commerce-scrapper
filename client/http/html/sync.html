@@ -23,7 +23,7 @@
 
     form.addEventListener("submit", function (e) {
 
-        const inp = form.getElementById("keyword")
+        const inp = document.getElementById("keyword")
 
         e.preventDefault()
 
@@ -37,7 +37,7 @@
                 return response.json();
             })
             .then(data => {
-
+                
                 data.forEach(p=>{
 
                     const html = ` <li>

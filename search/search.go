@@ -1,10 +1,13 @@
 package search
 
 import (
+	"encoding/json"
 	"fmt"
 	"sort"
 	"sync"
 
+	"github.com/vsayfb/e-commerce-scrapper/cache"
+	"github.com/vsayfb/e-commerce-scrapper/cache/redis"
 	"github.com/vsayfb/e-commerce-scrapper/fetcher"
 	"github.com/vsayfb/e-commerce-scrapper/product"
 	"github.com/vsayfb/e-commerce-scrapper/resource"
@@ -30,6 +33,16 @@ type Search struct {
 }
 
 func (s Search) SearchSync() []product.Product {
+	c := cache.New(redis.New())
+
+	key := fmt.Sprintf("%v-%v", s.keyword, s.page)
+
+	result, err := c.GetProducts(key)
+
+	if err == nil {
+		return result
+	}
+
 	fetchers := make([]*fetcher.Fetch, 0)
 
 	sources := source.GetSource()
@@ -59,6 +72,15 @@ func (s Search) SearchSync() []product.Product {
 			products = mergeSort(products, res)
 		}
 	}
+
+	go func() {
+		bytes, err := json.Marshal(products)
+		if err != nil {
+			fmt.Print("Marshal error", err)
+		} else {
+			c.Add(key, bytes)
+		}
+	}()
 
 	return products
 }

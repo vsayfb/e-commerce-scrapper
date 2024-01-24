@@ -25,7 +25,7 @@
 
         ev.preventDefault()
 
-        const inp = form.getElementById("keyword")
+        const inp = document.getElementById("keyword")
 
         socket.send(inp.value + "-" + 0)
 
