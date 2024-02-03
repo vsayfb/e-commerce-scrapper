@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Search Form</title>
+
+    <script src="/static/js/create_button.js" type="text/javascript"></script>
+    <script src="/static/js/render_products.js" type="text/javascript"></script>
+  </head>
+
+  <body>
+    <h1>Search Form</h1>
+    <form id="search">
+      <label for="keyword">Enter keyword:</label>
+      <input type="text" id="keyword" name="keyword" required />
+      <input id="page" name="page" value="0" type="hidden" />
+      <input type="submit" value="Search" />
+    </form>
+
+    <div id="output"></div>
+  </body>
+
+  <script>
+    const form = document.getElementById("search");
+    const output = document.getElementById("output");
+
+    async function fetchProducts(keyword, page) {
+      try {
+        const res = await fetch(
+          `http://localhost:5555/search?keyword=${keyword}&page=${page}`
+        );
+
+        if (!res.ok) {
+          throw new Error(`HTTP error! Status: ${res.status}`);
+        }
+
+        const data = await res.json();
+
+        let target = document.getElementById("page-", data.page);
+
+        if (!target) {
+          target = document.createElement("ul");
+
+          target.id = "page-" + data.page;
+
+          output.appendChild(target);
+        }
+
+        renderProducts(data.data, target);
+
+        createButton(target, () => fetchProducts(keyword, data.page + 1));
+      } catch (error) {
+        console.log(error);
+      }
+    }
+
+    form.addEventListener("submit", async function (e) {
+      event.preventDefault();
+
+      const keyword = document.getElementById("keyword");
+      const page = document.getElementById("page");
+
+      output.innerHTML = "";
+
+      page.value = 0;
+
+      try {
+        await fetchProducts(keyword.value, 0);
+
+        keyword.value = "";
+      } catch (err) {}
+    });
+  </script>
+</html>

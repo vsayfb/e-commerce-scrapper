@@ -3,6 +3,7 @@ package socket
 import (
 	"fmt"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -43,6 +44,10 @@ func ConcurrentSearchHandler(w http.ResponseWriter, r *http.Request) {
 
 		split := strings.Split(query, "-")
 
+		re := regexp.MustCompile("[^a-zA-Z0-9]+")
+
+		query = re.ReplaceAllString(split[0], "+")
+
 		page, uintErr := strconv.ParseUint(split[1], 10, 8)
 
 		if uintErr != nil {
@@ -50,6 +55,6 @@ func ConcurrentSearchHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		channel.ReceiveProducts(split[0], uint8(page), conn)
+		channel.ReceiveProducts(query, uint8(page), conn)
 	}
 }

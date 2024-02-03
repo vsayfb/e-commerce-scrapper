@@ -9,6 +9,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/vsayfb/e-commerce-scrapper/cache"
 	"github.com/vsayfb/e-commerce-scrapper/cache/redis"
+	"github.com/vsayfb/e-commerce-scrapper/client/response"
 	"github.com/vsayfb/e-commerce-scrapper/product"
 	"github.com/vsayfb/e-commerce-scrapper/search"
 )
@@ -18,10 +19,19 @@ func ReceiveProducts(keyword string, page uint8, conn *websocket.Conn) {
 
 	key := fmt.Sprintf("%v-%v", keyword, page)
 
-	result, err := c.GetProducts(key)
+	products, err := c.GetProducts(key)
 
 	if err == nil {
-		conn.WriteJSON(result)
+
+		res := response.New(keyword, page, products)
+
+		res.ConvertToInterfaceSlice()
+
+		if writeErr := conn.WriteJSON(res); writeErr != nil {
+			fmt.Println("Write error", writeErr)
+			return
+		}
+
 	} else {
 		s := search.New(keyword, page)
 
@@ -45,7 +55,17 @@ func ReceiveProducts(keyword string, page uint8, conn *websocket.Conn) {
 
 							val := tree.Values()
 
-							if writeErr := conn.WriteJSON(val); writeErr != nil {
+							type SocketResponse struct {
+								response.Response
+								Data []interface{} `json:"data"`
+							}
+
+							resp := SocketResponse{
+								Response: *response.New(keyword, page, nil),
+								Data:     val,
+							}
+
+							if writeErr := conn.WriteJSON(resp); writeErr != nil {
 								fmt.Println("Write error", writeErr)
 
 								return

@@ -4,18 +4,19 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"github.com/gorilla/websocket"
-	"github.com/vsayfb/e-commerce-scrapper/client/http"
-	"github.com/vsayfb/e-commerce-scrapper/product"
-	"github.com/vsayfb/e-commerce-scrapper/search"
 	"log"
 	"os"
 	"os/exec"
 	"runtime"
+	"strconv"
+
+	"github.com/gorilla/websocket"
+	"github.com/vsayfb/e-commerce-scrapper/client/http"
+	"github.com/vsayfb/e-commerce-scrapper/product"
+	"github.com/vsayfb/e-commerce-scrapper/search"
 )
 
 func New() {
-
 	sync := os.Args[2] == "sync"
 
 	if sync {
@@ -31,17 +32,13 @@ func New() {
 	}
 
 	defer func(conn *websocket.Conn) {
-
 		err := conn.Close()
-
 		if err != nil {
 			log.Fatalln(err)
 		}
-
 	}(conn)
 
 	go func() {
-
 		for {
 
 			_, message, readErr := conn.ReadMessage()
@@ -51,9 +48,14 @@ func New() {
 				return
 			}
 
-			var products []product.Product
+			type Response struct {
+				Page uint8             `json:"page"`
+				Data []product.Product `json:"data"`
+			}
 
-			err := json.Unmarshal(message, &products)
+			var res Response
+
+			err := json.Unmarshal(message, &res)
 
 			if err != nil {
 				log.Fatalln(err)
@@ -62,20 +64,20 @@ func New() {
 
 			clearCLI()
 
-			for i, p := range products {
+			for i, p := range res.Data {
 				fmt.Printf("%v - Site: %v - Title: %v - Price: %v \n", i, p.Site, p.Title, p.Price)
 			}
 
 			fmt.Printf("\n Search for a product:")
 		}
-
 	}()
 
 	openCLI(sync, conn)
-
 }
 
 func openCLI(sync bool, conn *websocket.Conn) {
+	lastSearch := " "
+	var page uint8 = 0
 
 	for {
 		scanner := bufio.NewScanner(os.Stdin)
@@ -90,8 +92,15 @@ func openCLI(sync bool, conn *websocket.Conn) {
 			os.Exit(0)
 		}
 
+		if inp == "" {
+			page++
+		} else {
+			lastSearch = inp
+			page = 0
+		}
+
 		if sync {
-			s := search.New(inp, 0)
+			s := search.New(lastSearch, page)
 
 			products := s.SearchSync()
 
@@ -100,14 +109,15 @@ func openCLI(sync bool, conn *websocket.Conn) {
 			}
 		} else {
 
-			writeErr := conn.WriteMessage(websocket.TextMessage, []byte(inp+"-"+"0"))
+			pageStr := strconv.Itoa(int(page))
+
+			writeErr := conn.WriteMessage(websocket.TextMessage, []byte(lastSearch+"-"+pageStr))
 
 			if writeErr != nil {
 				log.Fatalln(writeErr)
 			}
 		}
 	}
-
 }
 
 func clearCLI() {
@@ -129,7 +139,6 @@ func clearCLI() {
 	cmd.Stdout = os.Stdout
 
 	err := cmd.Run()
-
 	if err != nil {
 		fmt.Println(err)
 

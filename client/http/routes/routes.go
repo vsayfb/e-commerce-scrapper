@@ -2,18 +2,26 @@ package routes
 
 import (
 	"encoding/json"
+	"fmt"
 	"html/template"
 	"net/http"
 	"os"
+	"path"
+	"regexp"
+	"strconv"
+	"strings"
 
+	"github.com/vsayfb/e-commerce-scrapper/client/response"
 	"github.com/vsayfb/e-commerce-scrapper/search"
 )
 
-func Homepage(w http.ResponseWriter, r *http.Request) {
-	file := "client/http/html/" + os.Args[2] + ".html"
+func Homepage(w http.ResponseWriter, _ *http.Request) {
+	fp := path.Join("client", "http", "static", "html", os.Args[2]+".html")
 
-	tmpl, err := template.ParseFiles(file)
+	tmpl, err := template.ParseFiles(fp)
 	if err != nil {
+		fmt.Println(err)
+
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -27,18 +35,42 @@ func Homepage(w http.ResponseWriter, r *http.Request) {
 }
 
 func SearchHandler(w http.ResponseWriter, r *http.Request) {
-	err := r.ParseForm()
-	if err != nil {
+	queryParams := r.URL.Query()
+
+	keyword := queryParams.Get("keyword")
+
+	p := queryParams.Get("page")
+
+	if keyword == "" && p == "" {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
 
-	keyword := r.Form.Get("keyword")
+	keyword = strings.TrimSpace(keyword)
 
-	s := search.New(keyword, 0)
+	re := regexp.MustCompile("[^a-zA-Z0-9]+")
+
+	keyword = re.ReplaceAllString(keyword, "+")
+
+	if keyword == "" && p == "" {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+
+	page, parsingErr := strconv.ParseUint(p, 10, 8)
+
+	if parsingErr != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	s := search.New(keyword, uint8(page))
 
 	products := s.SearchSync()
 
-	bytes, encodingErr := json.Marshal(products)
+	resp := response.New(keyword, uint8(page), products)
+
+	bytes, encodingErr := json.Marshal(resp)
 
 	if encodingErr != nil {
 		http.Error(w, "Error encoding JSON", http.StatusInternalServerError)
