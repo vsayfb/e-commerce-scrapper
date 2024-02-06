@@ -43,7 +43,7 @@ func (s Search) SearchSync() []product.Product {
 		return result
 	}
 
-	fetchers := make([]*fetcher.Fetch, 0)
+	fetchers := make([]fetcher.Fetch, 0)
 
 	sources := source.GetSource()
 
@@ -57,21 +57,30 @@ func (s Search) SearchSync() []product.Product {
 			r.AppendDoc(d)
 		}
 
-		fetchers = append(fetchers, fetcher.New(*r))
+		fetchers = append(fetchers, *fetcher.New(*r))
 	}
 
 	products := make([]product.Product, 0)
 
+	var wg sync.WaitGroup
+
+	wg.Add(len(fetchers))
+
 	for _, f := range fetchers {
+		go func(fetcher fetcher.Fetch) {
+			defer wg.Done()
 
-		res := f.FetchSync()
+			res := fetcher.FetchSync()
 
-		if len(products) == 0 {
-			products = res
-		} else {
-			products = mergeSort(products, res)
-		}
+			products = append(products, res...)
+		}(f)
 	}
+
+	wg.Wait()
+
+	sort.Slice(products, func(i, j int) bool {
+		return products[i].NumPrice < products[j].NumPrice
+	})
 
 	go func() {
 		bytes, err := json.Marshal(products)
@@ -116,34 +125,4 @@ func (s Search) SearchAsync(ch chan<- product.Product) {
 
 		close(ch)
 	}()
-}
-
-func mergeSort(p1, p2 []product.Product) []product.Product {
-	res := make([]product.Product, 0)
-
-	sort.Slice(p1, func(i, j int) bool {
-		return p1[i].NumPrice < p1[j].NumPrice
-	})
-
-	sort.Slice(p2, func(i, j int) bool {
-		return p2[i].NumPrice < p2[j].NumPrice
-	})
-
-	i := 0
-	j := 0
-
-	for i < len(p1) && j < len(p2) {
-		if p1[i].NumPrice <= p2[j].NumPrice {
-			res = append(res, p1[i])
-			i++
-		} else {
-			res = append(res, p2[j])
-			j++
-		}
-	}
-
-	res = append(res, p1[i:]...)
-	res = append(res, p2[j:]...)
-
-	return res
 }
